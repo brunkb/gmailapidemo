@@ -21,16 +21,8 @@ import java.security.PrivateKey
 
 class GmailQuickstart {
 
-    //static final String CLIENT_SECRET_FILE = 'client_secret_926004129130-jacpsrrcju45m445bsjsuuc5lvi8vucp.apps.googleusercontent.com.json'
-
     /** Application name. */
     static final String APPLICATION_NAME = "GMailDemo"
-
-    /** Directory to store user credentials for this application. */
-//    static final java.io.File DATA_STORE_DIR = new java.io.File(
-//            System.getProperty("user.home"), ".credentials/gmail-java-quickstart")
-
-    static FileDataStoreFactory DATA_STORE_FACTORY
 
     static final JsonFactory JSON_FACTORY =
             JacksonFactory.getDefaultInstance()
@@ -42,8 +34,7 @@ class GmailQuickstart {
         HttpTransport HTTP_TRANSPORT
         FileDataStoreFactory DATA_STORE_FACTORY
 
-        java.io.File DATA_STORE_DIR = new java.io.File(
-                System.getProperty("user.home"), ".credentials/gmail-java-quickstart")
+        java.io.File DATA_STORE_DIR = new java.io.File("src/main/resources/")
         try {
             HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport()
             DATA_STORE_FACTORY = new FileDataStoreFactory(DATA_STORE_DIR)
@@ -53,7 +44,7 @@ class GmailQuickstart {
         }
 
         // Load client secrets.
-        InputStream inp = new FileInputStream("src/main/resources/client_secret_599287201074-ijri5tfq3m6l8rtpihj07eahuedqksbv.apps.googleusercontent.com.json")
+        InputStream inp = new FileInputStream("src/main/resources/client_id.json")
         GoogleClientSecrets clientSecrets =
                 GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(inp))
 
@@ -67,6 +58,12 @@ class GmailQuickstart {
         Credential credential = new AuthorizationCodeInstalledApp(
                 flow, new LocalServerReceiver()).authorize("user")
         //println("Credentials saved to " + DATA_STORE_DIR.getAbsolutePath())
+
+        // check access token for expiration
+        // if access token is expired, use refresh token to get a new access token
+        println "expiration: ${(long) credential.expiresInSeconds}"
+        println "refresh token: ${credential.getRefreshToken()}"
+
         return credential
     }
 
@@ -77,15 +74,7 @@ class GmailQuickstart {
         return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
                 .setApplicationName(APPLICATION_NAME)
                 .build()
-//
-//
-//        def creds = new FileInputStream("src/main/resources/GWTData-5ea530dd9107.json")
-//
-//        Credential credential = GoogleCredential.fromStream(creds)
-//
-//        return Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
-//                .setApplicationName(APPLICATION_NAME)
-//                .build()
+
     }
 
     static void main(String[] args) throws IOException {
@@ -127,7 +116,11 @@ class GmailQuickstart {
             }
         }
 
-        messages.each { Message message ->
+        messages.eachWithIndex { Message message, int idx ->
+
+            if( idx > 10 ) {
+                return
+            }
 
             def contents = service.users().messages().get(userId, message.id).execute()
 
@@ -143,13 +136,13 @@ class GmailQuickstart {
             def subject = headers.find { it.name == 'Subject' }
             def from = headers.find { it.name == 'From' }
 
-            if (from.value in ['account-verification-noreply@google.com',
-                         'sc-noreply@google.com',
-                         'wmt-noreply@google.com',
-                         'wmx-noreply@google.com'
-            ]) {
+//            if (from.value in ['account-verification-noreply@google.com',
+//                         'sc-noreply@google.com',
+//                         'wmt-noreply@google.com',
+//                         'wmx-noreply@google.com'
+//            ]) {
                 println("from: ${from.value} subject: ${subject?.value} ")
-            }
+//            }
 
 
         }

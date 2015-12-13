@@ -3,7 +3,9 @@
 apply plugin: 'groovy'
 apply plugin: 'application'
 
-mainClassName = 'GMailQuickStartServiceAccount'
+mainClassName = 'GmailQuickstart'
+//mainClassName = 'GMailQuickStartServiceAccount'
+//mainClassName = 'GMailStoredCredential'
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 version = '1.0'

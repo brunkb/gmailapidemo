@@ -1,4 +1,5 @@
 import com.google.api.client.auth.oauth2.TokenResponseException
+import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.http.HttpTransport
@@ -15,7 +16,7 @@ import com.google.api.services.gmail.model.Message
 class GMailQuickStartServiceAccount {
 
     /** Application name. */
-    static final String APPLICATION_NAME = "GWTData"
+    static final String APPLICATION_NAME = "Demo"
 
     static Gmail getGmailService() throws IOException {
 
@@ -23,24 +24,29 @@ class GMailQuickStartServiceAccount {
 
         JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance()
 
-        //def creds = new FileInputStream("src/main/resources/GWT23.json")
+        InputStream inp = new FileInputStream("src/main/resources/client_id.json")
+        GoogleClientSecrets clientSecrets =
+                GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(inp))
+
 
         def c = """
-            {
-            <secret info>
-            }
+
+            <secret stuff here>
+
 
         """
 
+
         GoogleCredential credential = GoogleCredential.fromStream(new ByteArrayInputStream(c.getBytes()),
                 HTTP_TRANSPORT, JSON_FACTORY)
-        credential.serviceAccountUser = 'FindLaw.GWT.23@gmail.com'
+        credential.serviceAccountUser = 'brunkb@gmail.com'
         credential.serviceAccountScopes = [GmailScopes.MAIL_GOOGLE_COM,
                                            GmailScopes.GMAIL_LABELS,
                                            GmailScopes.GMAIL_READONLY,
                                             GmailScopes.GMAIL_MODIFY]
 
 
+        println "access token: ${ credential.getAccessToken()}"
         return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
                 .setApplicationName(APPLICATION_NAME)
                 .build()
@@ -67,7 +73,7 @@ class GMailQuickStartServiceAccount {
         boolean shouldRetry = true
         int retryCount = 0
 
-        while (retryCount < 5 && shouldRetry) {
+        while (retryCount < 3 && shouldRetry) {
             try {
 
                 response = executeApiCall(service, userId)
@@ -110,13 +116,13 @@ class GMailQuickStartServiceAccount {
             def subject = headers.find { it.name == 'Subject' }
             def from = headers.find { it.name == 'From' }
 
-            if (from.value in ['account-verification-noreply@google.com',
-                               'sc-noreply@google.com',
-                               'wmt-noreply@google.com',
-                               'wmx-noreply@google.com'
-            ]) {
+//            if (from.value in ['account-verification-noreply@google.com',
+//                               'sc-noreply@google.com',
+//                               'wmt-noreply@google.com',
+//                               'wmx-noreply@google.com'
+//            ]) {
                 println("from: ${from.value} subject: ${subject?.value} ")
-            }
+//            }
         }
 
         return messages

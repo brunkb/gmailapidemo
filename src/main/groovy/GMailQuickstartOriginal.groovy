@@ -50,10 +50,13 @@ class GMailQuickstartOriginal {
 
     static Credential authorize() throws IOException {
         // Load client secrets.
-        InputStream inp =
-                GMailQuickstartOriginal.class.getResourceAsStream(CLIENT_SECRET_FILE)
+//        InputStream inp =
+//                GMailQuickstartOriginal.class.getResourceAsStream(CLIENT_SECRET_FILE)
+
+        def clientSecretsInput = new FileInputStream(CLIENT_SECRET_FILE)
+
         GoogleClientSecrets clientSecrets =
-                GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(inp))
+                GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(clientSecretsInput))
 
         // Build flow and trigger user authorization request.
         GoogleAuthorizationCodeFlow flow =
