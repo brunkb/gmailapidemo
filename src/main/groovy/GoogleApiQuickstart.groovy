@@ -12,18 +12,25 @@ import com.google.api.services.gmail.Gmail
 import com.google.api.services.gmail.GmailScopes
 import com.google.api.services.gmail.model.ListMessagesResponse
 import com.google.api.services.gmail.model.Message
+import com.google.api.services.webmasters.Webmasters
+import com.google.api.services.webmasters.WebmastersScopes
+import com.google.api.services.webmasters.model.SitesListResponse
+import com.google.api.services.webmasters.model.WmxSite
 
-class GmailQuickstart {
+class GoogleApiQuickstart {
 
     /** Application name. */
     static final String APPLICATION_NAME = "GMailDemo"
+
+    static HttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport()
 
     static final String credentialsDirectory = 'src/main/resources/stored_credentials'
 
     static final JsonFactory JSON_FACTORY =
             JacksonFactory.getDefaultInstance()
 
-    static final List SCOPES = [GmailScopes.GMAIL_LABELS, GmailScopes.GMAIL_READONLY]
+    static final List SCOPES = [GmailScopes.GMAIL_LABELS, GmailScopes.GMAIL_READONLY,
+                                WebmastersScopes.WEBMASTERS_READONLY]
 
     static Credential authorize() throws IOException {
         HttpTransport HTTP_TRANSPORT
@@ -62,38 +69,39 @@ class GmailQuickstart {
         return credential
     }
 
-    static Gmail getGmailService() throws IOException {
-        HttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport()
-
-        Credential credential = authorize()
+    static Gmail getGmailService(Credential credential) throws IOException {
         return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
                 .setApplicationName(APPLICATION_NAME)
                 .build()
 
     }
 
+    static Webmasters getWebmastersService(Credential credential) {
+        // Create a new authorized API client
+        return new Webmasters.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
+                .setApplicationName(APPLICATION_NAME)
+                .build()
+    }
+
+
     static void main(String[] args) throws IOException {
 
         println "Starting up..."
 
         // Build a new authorized API client service.
-        Gmail service = getGmailService()
+        Credential credential = authorize()
+        Gmail gmailService = getGmailService(credential)
 
-        listMessagesMatchingQuery(service, "me")
+        //listMessagesMatchingQuery(gmailService, "me")
 
-        // Print the labels in the user's account.
-//        String user = "me"
-//        ListLabelsResponse listResponse =
-//                service.users().labels().list(user).execute()
-//        List<Label> labels = listResponse.getLabels()
-//        if (labels.size() == 0) {
-//            System.out.println("No labels found.")
-//        } else {
-//            System.out.println("Labels:")
-//            labels.each {
-//                println("- ${it.name}")
-//            }
-//        }
+        Webmasters webmasterService = getWebmastersService(credential)
+
+        def verifiedSites = retrieveVerifiedSites(webmasterService)
+
+        verifiedSites.each { String currentSite ->
+            println currentSite
+        }
+
     }
 
     static List listMessagesMatchingQuery(Gmail service, String userId) throws IOException {
@@ -113,7 +121,7 @@ class GmailQuickstart {
 
         messages.eachWithIndex { Message message, int idx ->
 
-            if( idx > 10 ) {
+            if (idx > 10) {
                 return
             }
 
@@ -132,11 +140,11 @@ class GmailQuickstart {
             def from = headers.find { it.name == 'From' }
 
             if (from.value in ['account-verification-noreply@google.com',
-                         'sc-noreply@google.com',
-                         'wmt-noreply@google.com',
-                         'wmx-noreply@google.com'
+                               'sc-noreply@google.com',
+                               'wmt-noreply@google.com',
+                               'wmx-noreply@google.com'
             ]) {
-                println("from: ${from.value} subject: ${subject?.value} ")
+                println "from: ${from.value} subject: ${subject?.value} "
             }
 
 
@@ -146,4 +154,20 @@ class GmailQuickstart {
     }
 
 
+    static List retrieveVerifiedSites(Webmasters webmasterService) {
+        Webmasters.Sites.List request = webmasterService.sites().list()
+
+        // Get all sites that are verified
+        def verifiedSites = []
+
+        SitesListResponse siteList = request.execute()
+
+        siteList.getSiteEntry().each { WmxSite currentSite ->
+            String permissionLevel = currentSite.permissionLevel
+            if (permissionLevel.equals("siteOwner")) {
+                verifiedSites.add(currentSite.siteUrl)
+            }
+        }
+        verifiedSites
+    }
 }
