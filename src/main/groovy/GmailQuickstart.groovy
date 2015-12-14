@@ -3,7 +3,6 @@ import com.google.api.client.extensions.java6.auth.oauth2.AuthorizationCodeInsta
 import com.google.api.client.extensions.jetty.auth.oauth2.LocalServerReceiver
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow
 import com.google.api.client.googleapis.auth.oauth2.GoogleClientSecrets
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
 import com.google.api.client.http.HttpTransport
 import com.google.api.client.json.JsonFactory
@@ -11,22 +10,18 @@ import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.client.util.store.FileDataStoreFactory
 import com.google.api.services.gmail.Gmail
 import com.google.api.services.gmail.GmailScopes
-import com.google.api.services.gmail.model.Label
-import com.google.api.services.gmail.model.ListLabelsResponse
 import com.google.api.services.gmail.model.ListMessagesResponse
 import com.google.api.services.gmail.model.Message
-import groovy.json.JsonSlurper
-
-import java.security.PrivateKey
 
 class GmailQuickstart {
 
     /** Application name. */
     static final String APPLICATION_NAME = "GMailDemo"
 
+    static final String credentialsDirectory = 'src/main/resources/stored_credentials'
+
     static final JsonFactory JSON_FACTORY =
             JacksonFactory.getDefaultInstance()
-
 
     static final List SCOPES = [GmailScopes.GMAIL_LABELS, GmailScopes.GMAIL_READONLY]
 
@@ -34,7 +29,7 @@ class GmailQuickstart {
         HttpTransport HTTP_TRANSPORT
         FileDataStoreFactory DATA_STORE_FACTORY
 
-        java.io.File DATA_STORE_DIR = new java.io.File("src/main/resources/")
+        File DATA_STORE_DIR = new File("${credentialsDirectory}/gwt_24")
         try {
             HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport()
             DATA_STORE_FACTORY = new FileDataStoreFactory(DATA_STORE_DIR)
@@ -44,7 +39,7 @@ class GmailQuickstart {
         }
 
         // Load client secrets.
-        InputStream inp = new FileInputStream("src/main/resources/client_id.json")
+        InputStream inp = new FileInputStream("${credentialsDirectory}/gwt_24/client_id.json")
         GoogleClientSecrets clientSecrets =
                 GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(inp))
 
@@ -136,13 +131,13 @@ class GmailQuickstart {
             def subject = headers.find { it.name == 'Subject' }
             def from = headers.find { it.name == 'From' }
 
-//            if (from.value in ['account-verification-noreply@google.com',
-//                         'sc-noreply@google.com',
-//                         'wmt-noreply@google.com',
-//                         'wmx-noreply@google.com'
-//            ]) {
+            if (from.value in ['account-verification-noreply@google.com',
+                         'sc-noreply@google.com',
+                         'wmt-noreply@google.com',
+                         'wmx-noreply@google.com'
+            ]) {
                 println("from: ${from.value} subject: ${subject?.value} ")
-//            }
+            }
 
 
         }
