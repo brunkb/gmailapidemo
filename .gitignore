@@ -1,0 +1,7 @@
+# Created by .ignore support plugin (hsz.mobi)
+target/*
+out/production
+.idea/
+.gradle/
+build
+src/main/resources
