@@ -15,17 +15,20 @@ import com.google.api.services.gmail.model.ListLabelsResponse
 import com.google.api.services.gmail.model.ListMessagesResponse
 import com.google.api.services.gmail.model.Message
 
+/**
+ * This class is the example right off of Google's website with minimal modifications.  It was the first proof of concept.
+ */
 class GMailQuickstartOriginal {
 
     static
-    final String CLIENT_SECRET_FILE = 'client_secret_926004129130-jacpsrrcju45m445bsjsuuc5lvi8vucp.apps.googleusercontent.com.json'
+    final String CLIENT_SECRET_FILE = 'client_id.json'
 
     /** Application name. */
     static final String APPLICATION_NAME =
             "GMailDemo"
 
     /** Directory to store user credentials for this application. */
-    static final java.io.File DATA_STORE_DIR = new java.io.File(
+    static final File DATA_STORE_DIR = new File(
             System.getProperty("user.home"), ".credentials/gmail-java-quickstart")
 
     static FileDataStoreFactory DATA_STORE_FACTORY
@@ -49,10 +52,6 @@ class GMailQuickstartOriginal {
     }
 
     static Credential authorize() throws IOException {
-        // Load client secrets.
-//        InputStream inp =
-//                GMailQuickstartOriginal.class.getResourceAsStream(CLIENT_SECRET_FILE)
-
         def clientSecretsInput = new FileInputStream(CLIENT_SECRET_FILE)
 
         GoogleClientSecrets clientSecrets =
@@ -88,18 +87,18 @@ class GMailQuickstartOriginal {
         listMessagesMatchingQuery(service, "me")
 
         // Print the labels in the user's account.
-//        String user = "me"
-//        ListLabelsResponse listResponse =
-//                service.users().labels().list(user).execute()
-//        List<Label> labels = listResponse.getLabels()
-//        if (labels.size() == 0) {
-//            System.out.println("No labels found.")
-//        } else {
-//            System.out.println("Labels:")
-//            labels.each {
-//                println("- ${it.name}")
-//            }
-//        }
+        String user = "me"
+        ListLabelsResponse listResponse =
+                service.users().labels().list(user).execute()
+        List<Label> labels = listResponse.getLabels()
+        if (labels.size() == 0) {
+            println("No labels found.")
+        } else {
+            println("Labels:")
+            labels.each {
+                println("- ${it.name}")
+            }
+        }
     }
 
     static List listMessagesMatchingQuery(Gmail service, String userId) throws IOException {
@@ -122,13 +121,11 @@ class GMailQuickstartOriginal {
             def contents = service.users().messages().get(userId, message.id).execute()
 
             def labels = contents.getLabelIds()
-            //println labels
+            println labels
 
 
             def payload = contents.getPayload()
             def headers = payload['headers']
-            println headers
-            //println headers.find { it.name == 'Subject' }
 
             def subject = headers.find { it.name == 'Subject' }
             def from = headers.find { it.name == 'From' }

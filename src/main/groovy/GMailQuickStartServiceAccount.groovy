@@ -11,7 +11,9 @@ import com.google.api.services.gmail.model.ListMessagesResponse
 import com.google.api.services.gmail.model.Message
 
 /**
- * Created by uc192330 on 12/9/2015.
+ * This class was an attempt at using service accounts.  It failed because you cannot retrieve "user data" using a service
+ * account as the mechanism, you must use OAuth2 credentials.  I left this class here because it may hold value for somebody.
+ * It shows how to load a JSON service account credential.
  */
 class GMailQuickStartServiceAccount {
 
@@ -24,11 +26,8 @@ class GMailQuickStartServiceAccount {
 
         JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance()
 
-        InputStream inp = new FileInputStream("src/main/resources/client_id.json")
-        GoogleClientSecrets clientSecrets =
-                GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(inp))
-
-
+        // I ended up pasting the service account JSON directly into the code for brevity, but you would never want
+        // to do it in real production code.
         def c = """
 
             <secret stuff here>
@@ -39,7 +38,7 @@ class GMailQuickStartServiceAccount {
 
         GoogleCredential credential = GoogleCredential.fromStream(new ByteArrayInputStream(c.getBytes()),
                 HTTP_TRANSPORT, JSON_FACTORY)
-        credential.serviceAccountUser = 'brunkb@gmail.com'
+        credential.serviceAccountUser = 'FindLaw.GWT.22@gmail.com'
         credential.serviceAccountScopes = [GmailScopes.MAIL_GOOGLE_COM,
                                            GmailScopes.GMAIL_LABELS,
                                            GmailScopes.GMAIL_READONLY,
@@ -107,22 +106,22 @@ class GMailQuickStartServiceAccount {
             def contents = service.users().messages().get(userId, message.id).execute()
 
             def labels = contents.getLabelIds()
-            //println labels
+            println labels
             def payload = contents.getPayload()
             def headers = payload['headers']
-            //println headers
-            //println headers.find { it.name == 'Subject' }
+            println headers
+            println headers.find { it.name == 'Subject' }
 
             def subject = headers.find { it.name == 'Subject' }
             def from = headers.find { it.name == 'From' }
 
-//            if (from.value in ['account-verification-noreply@google.com',
-//                               'sc-noreply@google.com',
-//                               'wmt-noreply@google.com',
-//                               'wmx-noreply@google.com'
-//            ]) {
+            if (from.value in ['account-verification-noreply@google.com',
+                               'sc-noreply@google.com',
+                               'wmt-noreply@google.com',
+                               'wmx-noreply@google.com'
+            ]) {
                 println("from: ${from.value} subject: ${subject?.value} ")
-//            }
+            }
         }
 
         return messages

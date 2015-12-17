@@ -17,124 +17,128 @@ import com.google.api.services.webmasters.WebmastersScopes
 import com.google.api.services.webmasters.model.SitesListResponse
 import com.google.api.services.webmasters.model.WmxSite
 
+/**
+ * This class is the advanced proof of concept.  It is also the runner I used to generate the StoredCredential files that
+ * we place on the server.
+ */
 class GoogleApiQuickstart {
 
-    /** Application name. */
     static final String APPLICATION_NAME = "GMailDemo"
-
-    static HttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport()
 
     static final String credentialsDirectory = 'src/main/resources/stored_credentials'
 
-    static final JsonFactory JSON_FACTORY =
-            JacksonFactory.getDefaultInstance()
+    static final JsonFactory JSON_FACTORY = JacksonFactory.getDefaultInstance()
 
     static final List SCOPES = [GmailScopes.GMAIL_LABELS, GmailScopes.GMAIL_READONLY,
-                                WebmastersScopes.WEBMASTERS_READONLY]
+                                WebmastersScopes.WEBMASTERS_READONLY, WebmastersScopes.WEBMASTERS]
 
-    static Credential authorize() throws IOException {
-        HttpTransport HTTP_TRANSPORT
-        FileDataStoreFactory DATA_STORE_FACTORY
+    static Credential authorize(Integer accountNumber) {
 
-        File DATA_STORE_DIR = new File("${credentialsDirectory}/gwt_24")
-        try {
-            HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport()
-            DATA_STORE_FACTORY = new FileDataStoreFactory(DATA_STORE_DIR)
-        } catch (Throwable t) {
-            t.printStackTrace()
-            System.exit(1)
-        }
+        String acctNumberString = accountNumber < 10 ? "0${accountNumber}" : accountNumber.toString()
+        FileDataStoreFactory dataStoreFactory
+
+        File dataStoreDirectory = new File("${credentialsDirectory}/gwt_${acctNumberString}")
+
+        def userId = "FindLaw.GWT.${accountNumber}@gmail.com"
+
+        HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport()
+        dataStoreFactory = new FileDataStoreFactory(dataStoreDirectory)
 
         // Load client secrets.
-        InputStream inp = new FileInputStream("${credentialsDirectory}/gwt_24/client_id.json")
+        String inp = new File("${credentialsDirectory}/gwt_${acctNumberString}/client_id.json").getText()
         GoogleClientSecrets clientSecrets =
-                GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(inp))
+                GoogleClientSecrets.load(JSON_FACTORY, new StringReader(inp))
 
         // Build flow and trigger user authorization request.
         GoogleAuthorizationCodeFlow flow =
                 new GoogleAuthorizationCodeFlow.Builder(
-                        HTTP_TRANSPORT, JSON_FACTORY, clientSecrets, SCOPES)
-                        .setDataStoreFactory(DATA_STORE_FACTORY)
+                        httpTransport, JSON_FACTORY, clientSecrets, SCOPES)
+                        .setDataStoreFactory(dataStoreFactory)
                         .setAccessType("offline")
                         .build()
-        Credential credential = new AuthorizationCodeInstalledApp(
-                flow, new LocalServerReceiver()).authorize("user")
-        //println("Credentials saved to " + DATA_STORE_DIR.getAbsolutePath())
 
-        // check access token for expiration
-        // if access token is expired, use refresh token to get a new access token
+        // If there is no StoredCredential file already, Chrome will open a tab for you to manually
+        // authorize the interaction.  The trick is that if your browser is already logged in to a particular
+        // account, you must first logout of that account and then authorize the scope on the correct account by
+        // first logging in to that account.
+        Credential credential = new AuthorizationCodeInstalledApp(
+                flow, new LocalServerReceiver()).authorize(userId)
+
+        println("Credentials saved to: ${credentialsDirectory}/gwt_${acctNumberString}" )
         println "expiration: ${(long) credential.expiresInSeconds}"
+        println "access token: ${credential.getAccessToken()}"
         println "refresh token: ${credential.getRefreshToken()}"
 
         return credential
     }
 
     static Gmail getGmailService(Credential credential) throws IOException {
-        return new Gmail.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
+        HttpTransport httpTransport =  GoogleNetHttpTransport.newTrustedTransport()
+        new Gmail.Builder(httpTransport, JSON_FACTORY, credential)
                 .setApplicationName(APPLICATION_NAME)
                 .build()
-
     }
 
     static Webmasters getWebmastersService(Credential credential) {
         // Create a new authorized API client
-        return new Webmasters.Builder(HTTP_TRANSPORT, JSON_FACTORY, credential)
+        HttpTransport httpTransport =  GoogleNetHttpTransport.newTrustedTransport()
+        new Webmasters.Builder(httpTransport, JSON_FACTORY, credential)
                 .setApplicationName(APPLICATION_NAME)
                 .build()
     }
-
 
     static void main(String[] args) throws IOException {
 
         println "Starting up..."
 
-        // Build a new authorized API client service.
-        Credential credential = authorize()
-        Gmail gmailService = getGmailService(credential)
+            1.upto(53) { Integer accountNumber ->
 
-        //listMessagesMatchingQuery(gmailService, "me")
+            Credential credential = authorize(accountNumber)
 
-        Webmasters webmasterService = getWebmastersService(credential)
+            Gmail gmailService = getGmailService(credential)
+            listMessagesMatchingQuery(gmailService)
 
-        def verifiedSites = retrieveVerifiedSites(webmasterService)
+            Webmasters webmasterService = getWebmastersService(credential)
 
-        verifiedSites.each { String currentSite ->
-            println currentSite
+            def verifiedSites = retrieveVerifiedSites(webmasterService)
+
+            verifiedSites.eachWithIndex { String currentSite, int idx ->
+                if(idx > 10 ) { return } // just print the first 10 and then bail out
+                println currentSite
+            }
+
+
         }
-
     }
 
-    static List listMessagesMatchingQuery(Gmail service, String userId) throws IOException {
-        ListMessagesResponse response = service.users().messages().list(userId).execute()
+    static List listMessagesMatchingQuery(Gmail gmailService) throws IOException {
+
+        // NOTE:  The userId value has to be "me" or this won't work right with multiple accounts
+        ListMessagesResponse response = gmailService.users().messages().list("me").execute()
 
         List messages = []
         while (response.getMessages() != null) {
             messages.addAll(response.getMessages())
             if (response.getNextPageToken() != null) {
                 String pageToken = response.getNextPageToken()
-                response = service.users().messages().list(userId)
+                response = gmailService.users().messages().list("me")
                         .setPageToken(pageToken).execute()
             } else {
                 break
             }
         }
 
+        println("messages size: ${messages.size()}")
         messages.eachWithIndex { Message message, int idx ->
 
-            if (idx > 10) {
+            if (idx > 10) {  // print 10 and bail
                 return
             }
 
-            def contents = service.users().messages().get(userId, message.id).execute()
-
-            def labels = contents.getLabelIds()
-            //println labels
-
+            def contents = gmailService.users().messages().get("me", message.id).execute()
 
             def payload = contents.getPayload()
             def headers = payload['headers']
-            //println headers
-            //println headers.find { it.name == 'Subject' }
 
             def subject = headers.find { it.name == 'Subject' }
             def from = headers.find { it.name == 'From' }
@@ -146,28 +150,25 @@ class GoogleApiQuickstart {
             ]) {
                 println "from: ${from.value} subject: ${subject?.value} "
             }
-
-
         }
 
         return messages
     }
 
-
     static List retrieveVerifiedSites(Webmasters webmasterService) {
-        Webmasters.Sites.List request = webmasterService.sites().list()
 
-        // Get all sites that are verified
-        def verifiedSites = []
+        Webmasters.Sites.List request = webmasterService.sites().list()
 
         SitesListResponse siteList = request.execute()
 
+        def verifiedSites = []
         siteList.getSiteEntry().each { WmxSite currentSite ->
-            String permissionLevel = currentSite.permissionLevel
-            if (permissionLevel.equals("siteOwner")) {
-                verifiedSites.add(currentSite.siteUrl)
-            }
+           String permissionLevel = currentSite.permissionLevel
+           if (permissionLevel.equals("siteOwner")) {
+                verifiedSites << currentSite.siteUrl
+           }
         }
+        println "verfied sites size: ${verifiedSites.size()}"
         verifiedSites
     }
 }
