@@ -38,7 +38,7 @@ class GMailQuickStartServiceAccount {
 
         GoogleCredential credential = GoogleCredential.fromStream(new ByteArrayInputStream(c.getBytes()),
                 HTTP_TRANSPORT, JSON_FACTORY)
-        credential.serviceAccountUser = 'FindLaw.GWT.22@gmail.com'
+        credential.serviceAccountUser = 'userAccount.22@gmail.com'
         credential.serviceAccountScopes = [GmailScopes.MAIL_GOOGLE_COM,
                                            GmailScopes.GMAIL_LABELS,
                                            GmailScopes.GMAIL_READONLY,

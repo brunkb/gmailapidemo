@@ -39,7 +39,7 @@ class GoogleApiQuickstart {
 
         File dataStoreDirectory = new File("${credentialsDirectory}/gwt_${acctNumberString}")
 
-        def userId = "FindLaw.GWT.${accountNumber}@gmail.com"
+        def userId = "gwtAccount.${accountNumber}@gmail.com"
 
         HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport()
         dataStoreFactory = new FileDataStoreFactory(dataStoreDirectory)
